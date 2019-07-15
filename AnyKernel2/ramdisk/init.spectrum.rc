@@ -1,0 +1,278 @@
+# SPECTRUM KERNEL MANAGER
+# Ramdisk file for profile based kernel management
+
+# Initialization
+on property:sys.boot_completed=1
+   # Set default profile on first boot
+   exec u:r:init:s0 root root -- /init.spectrum.sh
+   exec u:r:su:s0 root root -- /init.spectrum.sh
+   # Enable Spectrum support
+   setprop spectrum.support 1
+   # Add kernel name
+   setprop persist.spectrum.kernel FOE
+
+# Balance (default profile)
+on property:persist.spectrum.profile=0
+
+    chown system.system /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+    chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+    chown system.system /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+    chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+
+    chown system.system /sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq
+    chmod 0664 /sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq
+    chown system.system /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq
+    chmod 0664 /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq
+
+    chown system.system /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+    chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+
+    chown system.system /sys/devices/system/cpu/cpu4/cpufreq/scaling_governor
+    chmod 0664 /sys/devices/system/cpu/cpu4/cpufreq/scaling_governor
+ 
+    # Configure governor settings for little cluster
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "interactive"
+
+    # Configure governor settings for big cluster
+    write /sys/devices/system/cpu/cpu4/cpufreq/scaling_governor "interactive"
+
+    # cpufreq
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 400000
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 1401600
+    write /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq 400000
+    write /sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq 1804800
+	
+	#cpu
+	write /sys/kernel/cpu_input_boost/enabled 1
+    write /sys/module/cpu_boost/parameters/input_boost_freq "0:1017600 4:1056000"
+    write /sys/module/cpu_boost/parameters/input_boost_ms 35
+	
+	#Enable CPU power saving
+	write /sys/module/workqueue/parameters/power_efficient Y
+
+	#Disable Fsync
+	write /sys/module/sync/parameters/fsync_enabled N
+	
+	#Disable Gentle Fair Sleepers
+	write /sys/kernel/sched/gentle_fair_sleepers 0
+	
+	#Enable Arch Power
+	write /sys/kernel/sched/arch_power 1
+
+	#Enable Fingerprint Boost
+	write /sys/kernel/fp_boost/enabled 1
+	
+	#Disable TouchBoostMin
+	write /sys/module/msm_performance/parameters/touchboost 0
+	
+	#Disable Core Control and Control VDD and MSM Thermal Throttling allowing for longer sustained performance
+	write /sys/module/msm_thermal/core_control/enabled 0
+	write /sys/module/msm_thermal/vdd_restriction/enabled 0	
+	write /sys/module/msm_thermal/parameters/enabled N
+	
+	#gpu
+	write /sys/module/adreno_idler/parameters/adreno_idler_active N
+	write /sys/class/kgsl/kgsl-3d0/max_gpuclk 600000000
+    write /sys/class/devfreq/soc:qcom,cpubw/governor "bw_hwmon"
+    write /sys/class/kgsl/kgsl-3d0/devfreq/governor "msm-adreno-tz"
+	
+	# Set ice-COOL display
+	write /sys/devices/platform/kcal_ctrl.0/kcal_cont 256
+	write /sys/devices/platform/kcal_ctrl.0/kcal_val 256
+	write /sys/devices/platform/kcal_ctrl.0/kcal_sat 250
+	write /sys/devices/platform/kcal_ctrl.0/kcal_min 25
+	write /sys/devices/platform/kcal_ctrl.0/kcal 256 256 256 
+	write /sys/devices/platform/kcal_ctrl.0/kcal_enable 1
+	
+	# Virtual memory tweaks
+	write /proc/sys/vm/dirty_ratio 20
+	write /proc/sys/vm/dirty_background_ratio 5
+	write /proc/sys/vm/dirty_expire_centisecs 200
+	write /proc/sys/vm/dirty_writeback_centisecs 500
+	write /proc/sys/vm/min_free_kbytes 6541
+	write /proc/sys/vm/oom_kill_allocating_task 0
+	write /proc/sys/vm/overcommit_ratio 50
+	write /proc/sys/vm/swappiness 100
+	write /proc/sys/vm/vfs_cache_pressure 100
+	write /proc/sys/vm/laptop_mode 0
+	write /proc/sys/vm/extra_free_kbytes 24300
+	
+	#Set maple block I/O scheduler
+	setprop sys.io.scheduler "maple"
+	write /proc/sys/kernel/random/read_wakeup_threshold 128
+	write /proc/sys/kernel/random/write_wakeup_threshold 256
+	write /sys/block/mmcblk0/queue/read_ahead_kb 128
+	write /sys/block/mmcblk0/queue/iostats 0
+	write /sys/block/mmcblk0/queue/add_random 1
+	write /sys/module/lowmemorykiller/parameters/lmk_fast_run 1
+	write /sys/module/lowmemorykiller/parameters/enable_adaptive_lmk 0
+	write /sys/module/lowmemorykiller/parameters/cost 32
+	write /sys/module/lowmemorykiller/parameters/adj_max_shift 353
+	write /sys/module/lowmemorykiller/parameters/adj 0 , 100 , 200 , 300 , 900 , 906
+	write /sys/module/lowmemorykiller/parameters/minfree "14746,18688,22118,25805,40000,55000"
+	
+	# Enable msm_mpdecision  & Disablealucard_hotplug
+	write /sys/kernel/msm_mpdecision/conf/enabled 0
+	write /sys/kernel/alucard_hotplug/hotplug_enable 0
+	write /sys/kernel/intelli_plug/intelli_plug_active 1
+	write /sys/kernel/intelli_plug/min_cpus_online 8
+	
+    #Perfd
+    start perfd
+
+# Performance
+on property:persist.spectrum.profile=1
+
+    chown system.system /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+    chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+    chown system.system /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+    chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+
+    chown system.system /sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq
+    chmod 0664 /sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq
+    chown system.system /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq
+    chmod 0664 /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq
+
+    chown system.system /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+    chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+
+    chown system.system /sys/devices/system/cpu/cpu4/cpufreq/scaling_governor
+    chmod 0664 /sys/devices/system/cpu/cpu4/cpufreq/scaling_governor
+
+    # Configure governor settings for little cluster
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "interactive"
+
+    # Configure governor settings for big cluster
+    write /sys/devices/system/cpu/cpu4/cpufreq/scaling_governor "interactive"
+
+    #cpu
+    write /sys/module/msm_performance/parameters/touchboost 1
+    write /sys/module/cpu_boost/parameters/input_boost_freq "0:1017600"
+    write /sys/module/cpu_boost/parameters/input_boost_ms 80
+
+    # cpufreq
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 400000
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 1401600
+    write /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq 400000
+    write /sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq 1804800
+	
+	# Enable msm_mpdecision  & Disablealucard_hotplug
+	write /sys/kernel/msm_mpdecision/conf/enabled 0
+	write /sys/kernel/alucard_hotplug/hotplug_enable 0
+	write /sys/kernel/intelli_plug/intelli_plug_active 1
+	write /sys/kernel/intelli_plug/min_cpus_online 8
+	
+	#gpu
+	write /sys/module/adreno_idler/parameters/adreno_idler_active N
+	write /sys/class/kgsl/kgsl-3d0/max_gpuclk 600000000
+    write /sys/class/devfreq/soc:qcom,cpubw/governor "bw_hwmon"
+    write /sys/class/kgsl/kgsl-3d0/devfreq/governor "msm-adreno-tz"
+	
+    #Perfd
+    start perfd
+
+# Battery
+on property:persist.spectrum.profile=2
+
+    chown system.system /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+    chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+    chown system.system /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+    chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+
+    chown system.system /sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq
+    chmod 0664 /sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq
+    chown system.system /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq
+    chmod 0664 /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq
+
+    chown system.system /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+    chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+
+    chown system.system /sys/devices/system/cpu/cpu4/cpufreq/scaling_governor
+    chmod 0664 /sys/devices/system/cpu/cpu4/cpufreq/scaling_governor
+
+    # Configure governor settings for little cluster
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "alucard"
+
+
+    # Configure governor settings for big cluster
+    write /sys/devices/system/cpu/cpu4/cpufreq/scaling_governor "alucard"
+
+	# Enable msm_mpdecision  & Disablealucard_hotplug
+	write /sys/kernel/msm_mpdecision/conf/enabled 0
+	write /sys/kernel/alucard_hotplug/hotplug_enable 1
+	write /sys/kernel/intelli_plug/intelli_plug_active 0
+
+    #cpu
+    write /sys/module/msm_performance/parameters/touchboost 0
+    write /sys/module/cpu_boost/parameters/input_boost_freq "0:1017600"
+    write /sys/module/cpu_boost/parameters/input_boost_ms 66
+
+    # cpufreq
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 400000
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 1017600
+    write /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq 400000
+    write /sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq 883200
+	
+	#gpu
+	write /sys/module/adreno_idler/parameters/adreno_idler_active Y
+	write /sys/class/kgsl/kgsl-3d0/max_gpuclk 432000000
+    write /sys/class/devfreq/soc:qcom,cpubw/governor "bw_hwmon"
+    write /sys/class/kgsl/kgsl-3d0/devfreq/governor "msm-adreno-tz"
+	
+    #Perfd
+    start perfd
+
+# Gaming
+on property:persist.spectrum.profile=3
+
+    chown system.system /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+    chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+    chown system.system /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+    chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+
+    chown system.system /sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq
+    chmod 0664 /sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq
+    chown system.system /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq
+    chmod 0664 /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq
+
+    chown system.system /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+    chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+
+    chown system.system /sys/devices/system/cpu/cpu4/cpufreq/scaling_governor
+    chmod 0664 /sys/devices/system/cpu/cpu4/cpufreq/scaling_governor
+
+    # Configure governor settings for little cluster
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "interactive_pro"
+
+    # Configure governor settings for big cluster
+    write /sys/devices/system/cpu/cpu4/cpufreq/scaling_governor "interactive_pro"
+
+    #cpu
+    write /sys/module/msm_performance/parameters/touchboost 0
+    write /sys/module/cpu_boost/parameters/input_boost_freq "0:1017600"
+    write /sys/module/cpu_boost/parameters/input_boost_ms 35
+
+    # cpufreq
+     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 400000
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 1401600
+    write /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq 400000
+    write /sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq 1804800
+	
+	# Enable msm_mpdecision  & Disablealucard_hotplug
+	write /sys/kernel/msm_mpdecision/conf/enabled 0
+	write /sys/kernel/alucard_hotplug/hotplug_enable 0
+	write /sys/kernel/intelli_plug/intelli_plug_active 1
+	write /sys/kernel/intelli_plug/min_cpus_online 8
+	
+	#gpu
+	write /sys/module/adreno_idler/parameters/adreno_idler_active N
+	write /sys/class/kgsl/kgsl-3d0/max_gpuclk 600000000
+    write /sys/class/devfreq/soc:qcom,cpubw/governor "bw_hwmon"
+    write /sys/class/kgsl/kgsl-3d0/devfreq/governor "msm-adreno-tz"
+
+	#lmk don't kill proc
+	write /sys/module/lowmemorykiller/parameters/donotkill_proc 1
+	write /sys/module/lowmemorykiller/parameters/donotkill_proc_names com.mobile.legends
+	
+    #Perfd
+    start perfd
